@@ -375,11 +375,11 @@ docker inspect --format '{{ .Name }} {{ .NetworkSettings.Networks.postgres.IPAdd
 ```
 
 Before we move on, let's take a brief look at the built in connection pooling we have with Spring Boot. It will be using
-[HikariCP]("https://github.com/brettwooldridge/HikariCP") by default, so go ahead and skim through all the options that gives you.
+[HikariCP](https://github.com/brettwooldridge/HikariCP) by default, so go ahead and skim through all the options that gives you.
 None of the options can be easily demonstrated though, so we'll move on.
 
 
-A commonly used connection pooler with a larger feature set would be [Pgpool-II]("https://pgpool.net/").
+A commonly used connection pooler with a larger feature set would be [Pgpool-II](https://pgpool.net/).
 Let's take a look at how this can be used on the server side infrastructure to more transparantly enable load balancing and read/write
 splits on the server end.
 
