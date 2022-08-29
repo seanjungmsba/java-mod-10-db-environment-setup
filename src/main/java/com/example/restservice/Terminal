@@ -1,0 +1,19 @@
+# 1. Create the new replica instance with all necessary cluster configurations
+docker run -d --name postgres-master-1 --network labnetwork -p 5432:5432 -e REPMGR_PARTNER_NODES=postgres-master-1,postgres-replica-1,postgres-replica-2,postgres-replica-3 -e REPMGR_NODE_NAME=postgres-master-1 -e REPMGR_NODE_NETWORK_NAME=postgres-master-1 -e REPMGR_NODE_ID=1 -e REPMGR_PRIMARY_HOST=postgres-master-1 -e REPMGR_PASSWORD=repmgrpass -e POSTGRES_PASSWORD=mysecretpassword -e POSTGRES_DATABASE=db_test bitnami/postgresql-repmgr:14.4.0-debian-11-r9
+
+# 2. Create the new replica instance with all necessary cluster configurations
+docker run -d --name postgres-replica-1 --network labnetwork -p 5433:5432 -e REPMGR_PARTNER_NODES=postgres-master-1,postgres-replica-1,postgres-replica-2,postgres-replica-3 -e REPMGR_NODE_NAME=postgres-replica-1 -e REPMGR_NODE_NETWORK_NAME=postgres-replica-1 -e REPMGR_NODE_ID=2 -e REPMGR_PRIMARY_HOST=postgres-master-1 -e REPMGR_PASSWORD=repmgrpass -e POSTGRES_PASSWORD=mysecretpassword bitnami/postgresql-repmgr:14.4.0-debian-11-r9
+
+# 3. Create the new replica instances with all necessary cluster configurations
+docker run -d --name postgres-replica-2 --network labnetwork -p 5434:5432 -e REPMGR_PARTNER_NODES=postgres-master-1,postgres-replica-1,postgres-replica-2,postgres-replica-3 -e REPMGR_NODE_NAME=postgres-replica-2 -e REPMGR_NODE_NETWORK_NAME=postgres-replica-2 -e REPMGR_NODE_ID=3 -e REPMGR_PRIMARY_HOST=postgres-master-1 -e REPMGR_PASSWORD=repmgrpass -e POSTGRES_PASSWORD=mysecretpassword bitnami/postgresql-repmgr:14.4.0-debian-11-r9
+docker run -d --name postgres-replica-3 --network labnetwork -p 5435:5432 -e REPMGR_PARTNER_NODES=postgres-master-1,postgres-replica-1,postgres-replica-2,postgres-replica-3 -e REPMGR_NODE_NAME=postgres-replica-3 -e REPMGR_NODE_NETWORK_NAME=postgres-replica-3 -e REPMGR_NODE_ID=4 -e REPMGR_PRIMARY_HOST=postgres-master-1 -e REPMGR_PASSWORD=repmgrpass -e POSTGRES_PASSWORD=mysecretpassword bitnami/postgresql-repmgr:14.4.0-debian-11-r9
+
+# 4. Now go ahead and stand up a Pgpool-II instance in front of all these docker nodes
+docker run -d --name pgpool --network labnetwork -p 5436:5432 -e PGPOOL_BACKEND_NODES=0:postgres-master-1:5432,1:postgres-replica-1:5432,2:postgres-replica-2:5432,3:postgres-replica-3:5432 -e PGPOOL_SR_CHECK_USER=postgres -e PGPOOL_SR_CHECK_PASSWORD=mysecretpassword -e PGPOOL_POSTGRES_USERNAME=postgres -e PGPOOL_POSTGRES_PASSWORD=mysecretpassword -e PGPOOL_ADMIN_USERNAME=postgres -e PGPOOL_ADMIN_PASSWORD=mysecretpassword -e PGPOOL_ENABLE_STATEMENT_LOAD_BALANCING=yes bitnami/pgpool:4.3.2-debian-11-r16
+
+# 5. Test
+docker run --network labnetwork -it --rm -v //var/run/docker.sock:/var/run/docker.sock -v $pwd/test:/test inspec-lab exec docker.rb
+docker run --network labnetwork -it --rm -v //var/run/docker.sock:/var/run/docker.sock -v $pwd/test:/test inspec-lab exec postgres.rb -t docker://postgres-replica-1
+
+
+
