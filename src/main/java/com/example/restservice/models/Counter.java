@@ -15,12 +15,15 @@ public class Counter {
     protected Counter() {}
 
     public Counter(Long count) {
-        this.count = count;
+        setCounter(count);
     }
 
-    public Long incrementAndGet() {
-        this.count += 1;
+    public Long getCounter() {
         return count;
+    }
+
+    public void setCounter(Long count) {
+        this.count = count;
     }
 
 }

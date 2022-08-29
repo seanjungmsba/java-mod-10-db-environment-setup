@@ -1,7 +1,5 @@
 package com.example.restservice.controller;
 
-import java.util.concurrent.atomic.AtomicLong;
-
 import com.example.restservice.models.Counter;
 import com.example.restservice.models.Greeting;
 import com.example.restservice.models.Haystack;
@@ -15,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 import static java.util.UUID.randomUUID;
@@ -24,28 +23,56 @@ public class GreetingController {
 
     private static final String template = "Hello, %s!";
     private final AtomicLong counter = new AtomicLong();
+    @Autowired
+    private CounterRepository counterRepository;
+    @Autowired
+    private HaystackRepository haystackRepository;
+
+//    @GetMapping("/persistent_greeting")
+//    public Greeting persistentGreeting(@RequestParam(value = "name", defaultValue = "World") String name) {
+//        Counter persistentCounter = counterRepository.findById(1L).orElseGet(() -> new Counter(0L));
+//        Long persistentCounterValue = persistentCounter.incrementAndGet();
+//        counterRepository.save(persistentCounter);
+//        return new Greeting(persistentCounterValue, String.format(template, name));
+//    }
+    @Autowired
+    private HaystackUUIDRepository haystackUUIDRepository;
 
     @GetMapping("/greeting")
     public Greeting greeting(@RequestParam(value = "name", defaultValue = "World") String name) {
         return new Greeting(counter.incrementAndGet(), String.format(template, name));
     }
 
-    @Autowired
-    private CounterRepository counterRepository;
-
-    @GetMapping("/persistent_greeting")
-    public Greeting persistentGreeting(@RequestParam(value = "name", defaultValue = "World") String name) {
-        Counter persistentCounter = counterRepository.findById(1L).orElseGet(() -> new Counter(0L));
-        Long persistentCounterValue = persistentCounter.incrementAndGet();
-        counterRepository.save(persistentCounter);
-        return new Greeting(persistentCounterValue, String.format(template, name));
+    @GetMapping("/set_count")
+    public Greeting setCount(@RequestParam(value = "value", defaultValue = "0") Long value) {
+        Counter newCounter = counterRepository.findById(1L).orElseGet(() -> new Counter(0L));
+        newCounter.setCounter(value);
+        counterRepository.save(newCounter);
+        return new Greeting(newCounter.getCounter(), "Count value set.");
     }
 
-    @Autowired
-    private HaystackRepository haystackRepository;
+    @GetMapping("/get_count")
+    public Greeting getCount() {
+        Counter newCounter = counterRepository.findById(1L).orElseGet(() -> new Counter(0L));
+        return new Greeting(newCounter.getCounter(), "Count value get.");
+    }
 
-    @Autowired
-    private HaystackUUIDRepository haystackUUIDRepository;
+    @GetMapping("/get_count_trace")
+    public Greeting getCountTrace() {
+        String counterRepositoryOutput = counterRepository.getCounterAndTrace();
+        return new Greeting(Long.parseLong(counterRepositoryOutput.split(",")[1], 10),
+                String.format("Count value get, on instance %s",
+                        counterRepositoryOutput.split(",")[2]));
+    }
+
+    @GetMapping("/set_count_trace")
+    public Greeting setCountTrace(@RequestParam(value = "value", defaultValue = "0") Long value) {
+        Counter newCounter = counterRepository.findById(1L).orElseGet(() -> new Counter(0L));
+        String counterRepositoryOutput = counterRepository.setCounterAndTrace(value);
+        return new Greeting(Long.parseLong(counterRepositoryOutput.split(",")[1], 10),
+                String.format("Count value set, on instance %s",
+                        counterRepositoryOutput.split(",")[2]));
+    }
 
     @GetMapping("/benchmark")
     public String benchmark(@RequestParam(value = "count", defaultValue = "1000") long count) {
@@ -56,19 +83,19 @@ public class GreetingController {
         haystackUUIDRepository.truncateTable();
 
         // TODO: Initialize Tables
-         while (i < count) {
-             // get random uuid
-             UUID uuid = randomUUID();
+        while (i < count) {
+            // get random uuid
+            UUID uuid = randomUUID();
 
-        	 // generate new Haystack and HaystackUUID objects using uuid
-             Haystack haystack = new Haystack(uuid, "hay");
-             HaystackUUID haystackUUID = new HaystackUUID(uuid);
+            // generate new Haystack and HaystackUUID objects using uuid
+            Haystack haystack = new Haystack(uuid, "hay");
+            HaystackUUID haystackUUID = new HaystackUUID(uuid);
 
-        	 // save objects to their respective Database tables
-             haystackRepository.save(haystack);
-             haystackUUIDRepository.save(haystackUUID);
-             i++;
-         }
+            // save objects to their respective Database tables
+            haystackRepository.save(haystack);
+            haystackUUIDRepository.save(haystackUUID);
+            i++;
+        }
 
         // generate and save needle object at end
         UUID uuid = randomUUID();
@@ -93,13 +120,13 @@ public class GreetingController {
         Haystack query4 = haystackRepository.tableJoin();
         String query4Perf = haystackRepository.tableJoinPerf().stream().collect(Collectors.joining("\n"));
 
-        return new String(query1.toString() +
+        return query1.toString() +
                 query1Perf + "\n---------------------------------------\n" +
                 query2.toString() +
                 query2Perf + "\n---------------------------------------\n" +
                 query3.toString() +
                 query3Perf + "\n---------------------------------------\n" +
-                query4.toString()) +
+                query4.toString() +
                 query4Perf;
     }
 
